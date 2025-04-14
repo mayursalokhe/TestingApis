@@ -114,7 +114,7 @@ def test_crud_logs_read():
     """
     get_response = requests.get(f'{BASE_URL}/crud_logs')
     json_get_data = get_response.json()
-
+    print(f"CRUD LOGS READ:{json_get_data}")
     assert get_response.status_code == 200, "Failed to read CRUD logs"
     assert isinstance(json_get_data['payload'], dict)
     assert isinstance(json_get_data['payload']['data'], list)
@@ -216,7 +216,7 @@ def test_update(created_log_ts):
     json_create_data = update_response.json()
 
     assert update_response.status_code == 200
-
+    print(f"Updated TS:{created_log_ts}")
     try:
         response = Response(**json_create_data)
         assert response.status == "SUCCESS"
@@ -232,7 +232,7 @@ def test_delete(created_log_ts):
     delete_json_data = delete_response.json()
 
     assert delete_response.status_code == 200
-
+    print(f"Deleted TS:{created_log_ts}")
     try:
         response = Response(**delete_json_data)
         assert response.status == 'SUCCESS'

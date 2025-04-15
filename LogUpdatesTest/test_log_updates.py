@@ -54,7 +54,8 @@ def test_log_read():
     """
     get_response = requests.get(f'{BASE_URL}/log_read')
     json_get_data = get_response.json()
-
+    print(f"LOGS READ JSON:{json_get_data}")
+    print('\n')
     assert get_response.status_code == 200, "Failed to read logs"
     assert isinstance(json_get_data['payload'], dict)
     assert isinstance(json_get_data['payload']['data'], list)
@@ -115,6 +116,7 @@ def test_crud_logs_read():
     get_response = requests.get(f'{BASE_URL}/crud_logs')
     json_get_data = get_response.json()
     print(f"CRUD LOGS READ:{json_get_data}")
+    print('\n')
     assert get_response.status_code == 200, "Failed to read CRUD logs"
     assert isinstance(json_get_data['payload'], dict)
     assert isinstance(json_get_data['payload']['data'], list)
@@ -179,6 +181,10 @@ def created_log_ts():
     post_response = requests.post(f'{BASE_URL}/crud_logs', json=input_data)
     json_create_data = post_response.json()
 
+    print(f'Input given:{input_data}')
+    print(f'Create Status:{json_create_data}')
+    print('\n')
+    
     assert post_response.status_code == 200
 
     try:
@@ -197,6 +203,7 @@ def test_create(created_log_ts):
     assert created_log_ts is not None
     assert isinstance(created_log_ts, str)
     print(f"Created log with ts: {created_log_ts}")
+    print('\n')
 
 
 def test_update(created_log_ts):
@@ -213,12 +220,16 @@ def test_update(created_log_ts):
     }
 
     update_response = requests.put(f'{BASE_URL}/crud_logs', json=input_data)
-    json_create_data = update_response.json()
+    json_update_data = update_response.json()
 
     assert update_response.status_code == 200
+
     print(f"Updated TS:{created_log_ts}")
+    print(f'Update Status:{json_update_data}')
+    print('\n')
+
     try:
-        response = Response(**json_create_data)
+        response = Response(**json_update_data)
         assert response.status == "SUCCESS"
     except ValidationError as e:
         pytest.fail(f"Update response validation error: {e}")
@@ -232,7 +243,10 @@ def test_delete(created_log_ts):
     delete_json_data = delete_response.json()
 
     assert delete_response.status_code == 200
+
     print(f"Deleted TS:{created_log_ts}")
+    print(f'Delete Status:{delete_json_data}')
+
     try:
         response = Response(**delete_json_data)
         assert response.status == 'SUCCESS'

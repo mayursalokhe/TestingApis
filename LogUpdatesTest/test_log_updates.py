@@ -41,7 +41,6 @@ def get_accesstoken():
     accesstoken_obj = pyotp.TOTP(SECRET_KEY, interval=30)
     return accesstoken_obj.now()  
 
-
 def refresh_tokens():
     while True:
         with lock:

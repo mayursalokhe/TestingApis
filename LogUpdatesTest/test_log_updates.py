@@ -6,56 +6,47 @@ import json
 from pydantic import ValidationError, EmailStr
 import pyotp
 import threading
+import time
 
 BASE_URL = "https://beta.tradefinder.in/api_be/admin/log_updates"
 
 SECRET_KEY = pyotp.random_base32()
+
+lock = threading.Lock()
 
 token_data = {
     'jwttoken': None,
     'accesstoken': None
 }
 
-lock = threading.Lock()
-
-# JWTTOKEN = get_jwttoken
-# JWTTOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQyZmE0MDJlMTllNDExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0NzEyODYxLjU0MTc1NywiZXhwIjoxNzQ0NzIzNjYxLjU0MTc1NywicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.Hk4_Fef-OhyNFKmUz5WOd5B_JljKPCoHbx8KAVsKrRk"
-
-# ACCESS_TOKEN = get_accesstoken
-# ACCESS_TOKEN = '750099'
-
+# JWT TOKEN Func
 def get_jwttoken():
-    jwttoken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQyZmE0MDJlMTllNDExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0NzEyODYxLjU0MTc1NywiZXhwIjoxNzQ0NzIzNjYxLjU0MTc1NywicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.Hk4_Fef-OhyNFKmUz5WOd5B_JljKPCoHbx8KAVsKrRk"
-    with lock:
-        token_data['jwttoken'] = jwttoken
+    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImNkZTg4NmYyMWE3MzExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0Nzc0NTEyLjY2MTMzLCJleHAiOjE3NDQ3OTA0MzEuNTM4MDMsInBsYW4iOiJESUFNT05EIiwidXNlcl90eXBlIjoiY2xpZW50IiwiYWNjZXNzIjoie1wibWFya2V0X3B1bHNlXCI6IDEsIFwiaW5zaWRlcl9zdHJhdGVneVwiOiAwLCBcInNlY3Rvcl9zY29wZVwiOiAwLCBcInN3aW5nX3NwZWN0cnVtXCI6IDAsIFwib3B0aW9uX2Nsb2NrXCI6IDAsIFwib3B0aW9uX2FwZXhcIjogMCwgXCJwYXJ0bmVyX3Byb2dyYW1cIjogMH0iLCJhY2NvdW50X2V4cCI6IjE3NzYxOTE0MDAiLCJicm9rZXIiOiIifQ.ULZ4DSYlcXxr7dvDgiQGQB9PV-6PNCQUsRtQ6mMAT74"
 
+# ACCESS TOKEN Func
 def get_accesstoken():
     accesstoken_obj = pyotp.TOTP(SECRET_KEY, interval=30)
-    access_token = accesstoken_obj.now()
-    access_token = '750099'
-    with lock:
-        token_data['accesstoken'] = access_token
+    return accesstoken_obj.now()  
 
-def generate_token():
-    jwt_thread = threading.Thread(target=get_jwttoken)
-    access_thread = threading.Thread(target=get_accesstoken)
+def refresh_tokens():
+    while True:
+        with lock:
+            token_data['jwttoken'] = get_jwttoken()
+            token_data['accesstoken'] = get_accesstoken()
+        time.sleep(30)
 
-    jwt_thread.start()
-    access_thread.start()
-
-    jwt_thread.join()
-    access_thread.join()
-
+token_refresher = threading.Thread(target=refresh_tokens, daemon=True)
+token_refresher.start()
 
 @pytest.fixture(scope="module")
 def auth_headers():
-    generate_token()
-    return {
-        'Jwttoken': token_data['jwttoken'],
-        'Accesstoken': token_data['accesstoken']
-    }
+    with lock:
+        return {
+            'Jwttoken': token_data['jwttoken'],
+            'Accesstoken': token_data['accesstoken']
+        }
 
-# -------------- Health Endpoint ---------------#
+# ---------------------------- Health Endpoint -----------------------------------#
 
 def test_health():
     """

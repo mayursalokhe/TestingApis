@@ -6,7 +6,8 @@ import json
 from pydantic import ValidationError, EmailStr
 import pyotp
 import threading
-import time
+import time 
+import jwt
 
 BASE_URL = "https://beta.tradefinder.in/api_be/admin/log_updates"
 
@@ -19,6 +20,18 @@ token_data = {
     'accesstoken': None
 }
 
+# Check token expired or not
+def is_token_expired(token):
+    try:
+        decoded = jwt.decode(token, options={"verify_signature": False})
+        exp = decoded.get("exp")
+        if exp:
+            return time.time() > exp
+        return True
+    except Exception as e:
+        print(f"Error decoding token: {e}")
+        return True
+
 # JWT TOKEN Func
 def get_jwttoken():
     return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImNkZTg4NmYyMWE3MzExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0Nzc0NTEyLjY2MTMzLCJleHAiOjE3NDQ3OTA0MzEuNTM4MDMsInBsYW4iOiJESUFNT05EIiwidXNlcl90eXBlIjoiY2xpZW50IiwiYWNjZXNzIjoie1wibWFya2V0X3B1bHNlXCI6IDEsIFwiaW5zaWRlcl9zdHJhdGVneVwiOiAwLCBcInNlY3Rvcl9zY29wZVwiOiAwLCBcInN3aW5nX3NwZWN0cnVtXCI6IDAsIFwib3B0aW9uX2Nsb2NrXCI6IDAsIFwib3B0aW9uX2FwZXhcIjogMCwgXCJwYXJ0bmVyX3Byb2dyYW1cIjogMH0iLCJhY2NvdW50X2V4cCI6IjE3NzYxOTE0MDAiLCJicm9rZXIiOiIifQ.ULZ4DSYlcXxr7dvDgiQGQB9PV-6PNCQUsRtQ6mMAT74"
@@ -28,10 +41,13 @@ def get_accesstoken():
     accesstoken_obj = pyotp.TOTP(SECRET_KEY, interval=30)
     return accesstoken_obj.now()  
 
+
 def refresh_tokens():
     while True:
         with lock:
-            token_data['jwttoken'] = get_jwttoken()
+            if token_data['jwttoken'] is None or is_token_expired(token_data['jwttoken']):
+                print("Refreshing JWT Token")
+                token_data['jwttoken'] = get_jwttoken()
             token_data['accesstoken'] = get_accesstoken()
         time.sleep(30)
 

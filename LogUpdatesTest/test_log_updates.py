@@ -34,12 +34,13 @@ def is_token_expired(token):
 
 # JWT TOKEN Func
 def get_jwttoken():
-    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImNkZTg4NmYyMWE3MzExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0Nzc0NTEyLjY2MTMzLCJleHAiOjE3NDQ3OTA0MzEuNTM4MDMsInBsYW4iOiJESUFNT05EIiwidXNlcl90eXBlIjoiY2xpZW50IiwiYWNjZXNzIjoie1wibWFya2V0X3B1bHNlXCI6IDEsIFwiaW5zaWRlcl9zdHJhdGVneVwiOiAwLCBcInNlY3Rvcl9zY29wZVwiOiAwLCBcInN3aW5nX3NwZWN0cnVtXCI6IDAsIFwib3B0aW9uX2Nsb2NrXCI6IDAsIFwib3B0aW9uX2FwZXhcIjogMCwgXCJwYXJ0bmVyX3Byb2dyYW1cIjogMH0iLCJhY2NvdW50X2V4cCI6IjE3NzYxOTE0MDAiLCJicm9rZXIiOiIifQ.ULZ4DSYlcXxr7dvDgiQGQB9PV-6PNCQUsRtQ6mMAT74"
+    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImQ1ODMxMTc4MWFhNzExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0Nzk2ODU5LjI0ODExLCJleHAiOjE3NDQ4MDc2NTkuMjQ4MTEsInBsYW4iOiJESUFNT05EIiwidXNlcl90eXBlIjoiY2xpZW50IiwiYWNjZXNzIjoie1wibWFya2V0X3B1bHNlXCI6IDEsIFwiaW5zaWRlcl9zdHJhdGVneVwiOiAwLCBcInNlY3Rvcl9zY29wZVwiOiAwLCBcInN3aW5nX3NwZWN0cnVtXCI6IDAsIFwib3B0aW9uX2Nsb2NrXCI6IDAsIFwib3B0aW9uX2FwZXhcIjogMCwgXCJwYXJ0bmVyX3Byb2dyYW1cIjogMH0iLCJhY2NvdW50X2V4cCI6IjE3NzYxOTE0MDAiLCJicm9rZXIiOiIifQ.nd_G_9McdNcMqfwXN2e8E2FQiHGBSIkyoD8ty8Ovvy8"
 
 # ACCESS TOKEN Func
 def get_accesstoken():
     accesstoken_obj = pyotp.TOTP(SECRET_KEY, interval=30)
     return accesstoken_obj.now()  
+
 
 def refresh_tokens():
     while True:
@@ -170,15 +171,28 @@ def test_crud_logs_read(auth_headers):
 
     # Validate first record if available
     if json_payload.get('data'):
-        record = json_payload['data'][0]
         try:
-            log_data = json.loads(record[2])
+            record = json_payload['data'][0]
+
+            # Make sure the list has at least 3 elements
+            if len(record) < 3:
+                raise ValueError("Record does not contain enough elements")
+
+            # Parse the JSON string in record[2] into a dictionary
+            log_data = json.loads(record[2])  # This may raise JSONDecodeError
+
+            # Validate Log Entry
             log_entry = LogEntry(**log_data)
+
+            # Validate email of log entry separately
             email = record[1]
             email_valid = EmailValid(email=email)
-        except (json.JSONDecodeError, ValidationError) as e:
-            pytest.fail(f"Nested data validation error: {e}")
 
+            print("Validated log entry:", log_entry)
+            print("Validated email:", email_valid)
+
+        except (json.JSONDecodeError, ValidationError, ValueError, IndexError) as e:
+            pytest.fail(f"Nested data validation error: {e}")
 
 # ----------------------------------- CREATE / UPDATE / DELETE -------------------------------------#
 # Func to get latest TS

@@ -3,11 +3,13 @@ import pytest
 from models import LogEntry, Payload, Response
 import datetime
 import json
-from pydantic import ValidationError, EmailStr
+from pydantic import ValidationError
 import pyotp
 import threading
 import time 
 import jwt
+import openpyxl
+import io
 
 BASE_URL = "https://beta.tradefinder.in/api_be/contact_us"
 
@@ -33,8 +35,7 @@ def is_token_expired(token):
 
 # JWT TOKEN Func
 def get_jwttoken():
-    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImQ1ODMxMTc4MWFhNzExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0Nzk2ODU5LjI0ODExLCJleHAiOjE3NDQ4MDc2NTkuMjQ4MTEsInBsYW4iOiJESUFNT05EIiwidXNlcl90eXBlIjoiY2xpZW50IiwiYWNjZXNzIjoie1wibWFya2V0X3B1bHNlXCI6IDEsIFwiaW5zaWRlcl9zdHJhdGVneVwiOiAwLCBcInNlY3Rvcl9zY29wZVwiOiAwLCBcInN3aW5nX3NwZWN0cnVtXCI6IDAsIFwib3B0aW9uX2Nsb2NrXCI6IDAsIFwib3B0aW9uX2FwZXhcIjogMCwgXCJwYXJ0bmVyX3Byb2dyYW1cIjogMH0iLCJhY2NvdW50X2V4cCI6IjE3NzYxOTE0MDAiLCJicm9rZXIiOiIifQ.nd_G_9McdNcMqfwXN2e8E2FQiHGBSIkyoD8ty8Ovvy8"
-
+    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIxNjIyYzE2MWIzZDExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0ODYxMjIzLjE0Mzk2OSwiZXhwIjoxNzQ0ODg2NDU1LjA5NTI2MywicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.OoYAl_4K6QQ-jAQTjt7KaAGtSIDVJO8rxDGtD3YLh6g"
 
 def refresh_tokens():
     while True:
@@ -55,7 +56,6 @@ def auth_headers():
             'Jwttoken': token_data['jwttoken'],
             # 'Accesstoken': token_data['accesstoken']
         }
-
 
 def test_health():
     """
@@ -216,7 +216,7 @@ def created_log_ts(auth_headers):
 # Crud Logs Create
 def test_contact_create(created_log_ts):
     """
-    Test that log was successfully created.
+    Test for contact create endpoint.
     """
     assert created_log_ts is not None
     assert isinstance(created_log_ts, str)
@@ -226,7 +226,7 @@ def test_contact_create(created_log_ts):
 # Crud Logs Delete
 def test_contact_delete(created_log_ts, auth_headers):
     """
-    Test deleting a log using its timestamp.
+    Test deleting contact log using its timestamp.
     """
     delete_response = requests.delete(f'{BASE_URL}/admin_contact', 
                                       json={"timestamp": created_log_ts},
@@ -238,6 +238,7 @@ def test_contact_delete(created_log_ts, auth_headers):
 
     print(f"Deleted TS:{created_log_ts}")
     print(f'Delete Status:{delete_json_data}')
+    print('\n')
 
     try:
         response = Response(**delete_json_data)
@@ -246,6 +247,42 @@ def test_contact_delete(created_log_ts, auth_headers):
         pytest.fail(f"Delete response validation error: {e}")
 
 #-------------------------------------------------- Test Download Excel -------------------------------------------------------#
+ 
+# https://beta.tradefinder.in/api_be/contact_us/download_excel
+def test_download_excel(auth_headers):
+    """
+    Test for downloading and validating Excel file
+    """
 
-# def test_download_excel():
-#     pass
+    url = f'{BASE_URL}/download_excel'
+    response = requests.get(url, headers=auth_headers)
+
+    print(f"Download Excel Status: {response.status_code}")
+    print(f"Download Excel Content-Type: {response.headers['Content-Type']}")
+
+    assert response.status_code == 200
+    assert response.headers['Content-Type'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+    # Excel file validation
+    try:
+        workbook = openpyxl.load_workbook(io.BytesIO(response.content))
+        sheet_names = workbook.sheetnames
+        print(f"Sheet Names in Excel file: {sheet_names}")
+        print(f"Excel file is valid. Sheets: {sheet_names}")
+
+        sheet = workbook.active
+        assert sheet.max_row > 1, f"Expected more than 1 row, found {sheet.max_row}"
+        assert sheet.max_column > 1, f"Expected more than 1 column, found {sheet.max_column}"
+        assert sheet.cell(row=1, column=1).value is not None, "Top-left cell is empty"
+
+    except Exception as e:
+        pytest.fail(f"Failed to open/read Excel file: {e}")
+ 
+    # Download Excel file
+    # filename = 'downloaded_file.xlsx'
+    # if response.status_code == 200:
+    #     with open(filename, 'wb') as f:
+    #         f.write(response.content)
+    #     print(f"Excel file downloaded and saved as '{filename}'")
+    # else:
+    #     print(f"Failed to download file. Status code: {response.status_code}")

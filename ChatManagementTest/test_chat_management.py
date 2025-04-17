@@ -32,7 +32,7 @@ def is_token_expired(token):
 
 # JWT TOKEN Func
 def get_jwttoken():
-    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIxNjIyYzE2MWIzZDExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0ODYxMjIzLjE0Mzk2OSwiZXhwIjoxNzQ0ODcyMDIzLjE0Mzk2OSwicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.syt2jCitS_8zvGq4OeHfx1FB4q5XayMbmYREN0IFgA4"
+    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNiNDc0OTY4MWI2NDExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0ODc3Nzc1LjM2OTA5MiwiZXhwIjoxNzQ0ODg4NTc1LjM2OTA5MiwicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.-PoZox5rT0pPEiRre3rPfgOLHJrMR8XBzI5j6AgTwNc"
 
 def refresh_tokens():
     while True:
@@ -51,7 +51,7 @@ def auth_headers():
     with lock:
         return {
             'Jwttoken': token_data['jwttoken'],
-            # 'Accesstoken': token_data['accesstoken']
+            # 'Accesstoken': token_data['accesstoken']  
         }
     
 def test_health():
@@ -304,7 +304,6 @@ def test_delete(created_log_ts, auth_headers):
 
     print(f"Deleted TS:{created_log_ts}")
     print(f'Delete Status:{delete_json_data}')
-    print('\n')
 
     try:
         response = Response(**delete_json_data)

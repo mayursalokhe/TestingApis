@@ -15,7 +15,7 @@ lock = threading.Lock()
 
 token_data = {
     'jwttoken': None,
-    # 'accesstoken': None
+    'accesstoken': None
 }
 
 # Check token expired or not
@@ -46,7 +46,7 @@ def refresh_tokens():
             if token_data['jwttoken'] is None or is_token_expired(token_data['jwttoken']):
                 print("Refreshing JWT Token")
                 token_data['jwttoken'] = get_jwttoken()
-            # token_data['accesstoken'] = get_accesstoken()
+            token_data['accesstoken'] = get_accesstoken()
         time.sleep(30)
 
 token_refresher = threading.Thread(target=refresh_tokens, daemon=True)
@@ -57,7 +57,7 @@ def auth_headers():
     with lock:
         return {
             'Jwttoken': token_data['jwttoken'],
-            # 'Accesstoken': token_data['accesstoken']  
+            'Accesstoken': token_data['accesstoken']  
         }
     
 def test_health():

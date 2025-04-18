@@ -73,7 +73,21 @@ def test_health():
 
 def test_log_read(auth_headers):
     """
-    Validate structure & values from public log read endpoint.
+    Test /log_read endpoint and validate response schema.
+
+    Response:
+    {"payload": {
+            "data": [
+                [
+                    "1734177675",
+                    "{\"Log\": \"<p>this is test 1 updated one</p>\", \"Date\": \"2024-12-14T17:31\", \"Type\": \"Update\"}"
+                ],
+                [
+                    "1734177699",
+                    "{\"Log\": \"<p>this is test 2</p>\", \"Date\": \"2024-12-14T17:31\", \"Type\": \"Release\"}"
+                ],
+            ]
+        },"status": "SUCCESS"}
     """
     response = requests.get(f'{BASE_URL}/log_read', headers=auth_headers)
     data = response.json()
@@ -84,17 +98,20 @@ def test_log_read(auth_headers):
     assert isinstance(data['payload'], dict)
     assert isinstance(data['payload']['data'], list)
 
+    # Response Validation
     try:
         response_model = Response(**data)
         assert response_model.status == 'SUCCESS'
     except ValidationError as e:
         pytest.fail(f"Response schema validation failed: {e}")
-
+    
+    # Validate Payload structure
     try:
         payload_model = Payload(**data['payload'])
     except ValidationError as e:
         pytest.fail(f"Payload schema validation failed: {e}")
-
+    
+    # Validate Payload -> Data(list) -> list
     if data['payload']['data']:
         log_data_str = data['payload']['data'][0][1]
         try:

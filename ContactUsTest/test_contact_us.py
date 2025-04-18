@@ -53,7 +53,7 @@ token_refresher.start()
 @pytest.fixture(scope="module")
 def auth_headers():
     with lock:
-        return {
+        return { 
             'Jwttoken': token_data['jwttoken'],
             'Accesstoken': token_data['accesstoken']
         }
@@ -78,7 +78,37 @@ def test_health():
 
 def test_contact_admin_read(auth_headers):
     """
-    Validate /admin_contact read response structure.
+    Test /log_read endpoint and validate response schema.
+
+    Response:
+    {
+        "payload": {
+            "data": [
+                [
+                    "1744797014",
+                    "hr@gmail.com",
+                    "harshada",
+                    "8433544979",
+                    "this is testing contact message"
+                ],
+                [
+                    "1744796400",
+                    "hr@gmail.com",
+                    "harshada",
+                    "8433544979",
+                    "this is testing contact message"
+                ],
+                [
+                    "1727689882",
+                    "nayan@gmail.com",
+                    "nayan",
+                    "7894561230",
+                    "This is a testing message"
+                ]
+            ]
+        },
+        "status": "SUCCESS"
+    }
     """
     print("\nRunning Contact Admin Read...\n")
 
@@ -91,12 +121,14 @@ def test_contact_admin_read(auth_headers):
     assert isinstance(json_get_data['payload'], dict)
     assert isinstance(json_get_data['payload']['data'], list)
 
+    # Response Validation
     try:
         response = Response(**json_get_data)
         assert response.status == 'SUCCESS'
     except ValidationError as e:
         pytest.fail(f"Response schema validation error: {e}")
 
+    # Validate Payload structure
     json_payload = json_get_data.get('payload', {})
     print(f'Json Payload: {json_payload}\n')
 
@@ -107,6 +139,7 @@ def test_contact_admin_read(auth_headers):
     except ValidationError as e:
         pytest.fail(f"Payload schema validation error: {e}")
 
+    # Validate Payload -> Data(list) -> list 
     field_names = ['ts', 'email', 'name', 'contact', 'message']
     json_payload_data_list = json_payload.get('data')
 
@@ -146,7 +179,7 @@ def get_latest_ts(auth_headers):
     data_list = res_json.get("payload", {}).get("data", [])
     assert data_list, "No log entries found"
 
-    ts = data_list[0][0]
+    ts = data_list[0][0] # Assuming first item is the latest
     print(f"Latest Timestamp: {ts}\n")
     return ts
 
@@ -243,8 +276,7 @@ def test_download_excel(auth_headers):
     except Exception as e:
         pytest.fail(f"Failed to open/read Excel file: {e}")
 
- 
-    # Download Excel file
+    ## Download Excel file
     # filename = 'downloaded_file.xlsx'
     # if response.status_code == 200:
     #     with open(filename, 'wb') as f:

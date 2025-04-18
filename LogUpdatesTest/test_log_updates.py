@@ -1,16 +1,14 @@
 import requests
 import pytest
 from models import Payload, LogEntry, Response, EmailValid
-import datetime
 import json
-from pydantic import ValidationError, EmailStr
+from pydantic import ValidationError
 import pyotp
 import threading
-import time 
+import time
 import jwt
 
 BASE_URL = "https://beta.tradefinder.in/api_be/admin/log_updates"
-
 SECRET_KEY = pyotp.random_base32()
 
 lock = threading.Lock()
@@ -20,33 +18,30 @@ token_data = {
     'accesstoken': None
 }
 
-# Check token expired or not
+# --------------------------- Token Management --------------------------- #
+
 def is_token_expired(token):
     try:
         decoded = jwt.decode(token, options={"verify_signature": False})
         exp = decoded.get("exp")
-        if exp:
-            return time.time() > exp
-        return True
+        return time.time() > exp if exp else True
     except Exception as e:
-        print(f"Error decoding token: {e}")
+        print(f"\nToken decode error: {e}\n")
         return True
-
+    
 # JWT TOKEN Func
 def get_jwttoken():
-    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImQ1ODMxMTc4MWFhNzExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0Nzk2ODU5LjI0ODExLCJleHAiOjE3NDQ4MDc2NTkuMjQ4MTEsInBsYW4iOiJESUFNT05EIiwidXNlcl90eXBlIjoiY2xpZW50IiwiYWNjZXNzIjoie1wibWFya2V0X3B1bHNlXCI6IDEsIFwiaW5zaWRlcl9zdHJhdGVneVwiOiAwLCBcInNlY3Rvcl9zY29wZVwiOiAwLCBcInN3aW5nX3NwZWN0cnVtXCI6IDAsIFwib3B0aW9uX2Nsb2NrXCI6IDAsIFwib3B0aW9uX2FwZXhcIjogMCwgXCJwYXJ0bmVyX3Byb2dyYW1cIjogMH0iLCJhY2NvdW50X2V4cCI6IjE3NzYxOTE0MDAiLCJicm9rZXIiOiIifQ.nd_G_9McdNcMqfwXN2e8E2FQiHGBSIkyoD8ty8Ovvy8"
+    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg1MGVlNGU0MWMzZjExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0OTcxOTU4LjkzNDcwNSwiZXhwIjoxNzQ0OTgyNzU4LjkzNDcwNSwicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.eWhTmvlOfPSnbEWmUj2tsvnCr6zxZXnoz1Rg7IK679o" 
 
 # ACCESS TOKEN Func
 def get_accesstoken():
-    accesstoken_obj = pyotp.TOTP(SECRET_KEY, interval=30)
-    return accesstoken_obj.now()  
-
+    return pyotp.TOTP(SECRET_KEY, interval=30).now()
 
 def refresh_tokens():
     while True:
         with lock:
             if token_data['jwttoken'] is None or is_token_expired(token_data['jwttoken']):
-                print("Refreshing JWT Token")
+                print("\nRefreshing JWT Token...\n")
                 token_data['jwttoken'] = get_jwttoken()
             token_data['accesstoken'] = get_accesstoken()
         time.sleep(30)
@@ -62,163 +57,115 @@ def auth_headers():
             'Accesstoken': token_data['accesstoken']
         }
 
-# ---------------------------- Health Endpoint -----------------------------------#
+# ----------------------------- Health Check ----------------------------- #
 
 def test_health():
     """
-    Test /health endpoint to ensure service is running.
+    Ensure /health endpoint is operational.
     """
-    get_response = requests.get(f'{BASE_URL}/health')
-    json_get_data = get_response.json()
+    response = requests.get(f'{BASE_URL}/health')
+    data = response.json()
 
-    assert get_response.status_code == 200, "Health check failed"
-    assert json_get_data.get('status') == "OK", "Unexpected health check response"
+    assert response.status_code == 200
+    assert data.get('status') == "OK"
 
-# ------------------------------ Public READ Endpoints------------------------------#
-# Public Read
+# ---------------------------- Public Read API --------------------------- #
+
 def test_log_read(auth_headers):
     """
-    Test /log_read endpoint and validate response schema.
-
-    Response:
-    {"payload": {
-            "data": [
-                [
-                    "1734177675",
-                    "{\"Log\": \"<p>this is test 1 updated one</p>\", \"Date\": \"2024-12-14T17:31\", \"Type\": \"Update\"}"
-                ],
-                [
-                    "1734177699",
-                    "{\"Log\": \"<p>this is test 2</p>\", \"Date\": \"2024-12-14T17:31\", \"Type\": \"Release\"}"
-                ],
-            ]
-        },"status": "SUCCESS"}
+    Validate structure & values from public log read endpoint.
     """
-    # get_response = requests.get(f'{BASE_URL}/log_read')
-    get_response = requests.get(f'{BASE_URL}/log_read',
-                            headers=auth_headers
-                            )
-    json_get_data = get_response.json()
-    print(f"PUBLIC READ:{json_get_data}")
-    print('\n')
-    assert get_response.status_code == 200, "Failed to read logs"
-    assert isinstance(json_get_data['payload'], dict)
-    assert isinstance(json_get_data['payload']['data'], list)
+    response = requests.get(f'{BASE_URL}/log_read', headers=auth_headers)
+    data = response.json()
+
+    print(f"\nPUBLIC READ:\n{data}\n")
+
+    assert response.status_code == 200
+    assert isinstance(data['payload'], dict)
+    assert isinstance(data['payload']['data'], list)
 
     try:
-        response = Response(**json_get_data)
-        assert response.status == 'SUCCESS'
+        response_model = Response(**data)
+        assert response_model.status == 'SUCCESS'
     except ValidationError as e:
-        pytest.fail(f"Response schema validation error: {e}")
+        pytest.fail(f"Response schema validation failed: {e}")
 
-    # Validate Payload structure
-    json_payload = json_get_data.get('payload', {})
     try:
-        payload_valid = Payload(**json_payload)
+        payload_model = Payload(**data['payload'])
     except ValidationError as e:
-        pytest.fail(f"Payload schema validation error: {e}")
+        pytest.fail(f"Payload schema validation failed: {e}")
 
-    # Validate first log entry if available
-    if json_payload.get('data'):
-        json_data_string = json_payload['data'][0][1]
+    if data['payload']['data']:
+        log_data_str = data['payload']['data'][0][1]
         try:
-            dict_obj = json.loads(json_data_string)
-            log_entry = LogEntry(**dict_obj)
-        except (json.JSONDecodeError, ValidationError) as e:
-            pytest.fail(f"Log entry parsing or validation error: {e}")
+            log_dict = json.loads(log_data_str)
+            log_entry = LogEntry(**log_dict)
+            print("Validated Public Log Entry:", log_entry)
+        except Exception as e:
+            pytest.fail(f"Log parsing failed: {e}")
 
-#------------------------------------ Read Endpoints --------------------------------------------------------#
-# Crud Logs Read
+# ----------------------------- Admin Read API ---------------------------- #
+
 def test_crud_logs_read(auth_headers):
     """
-    Test /crud_logs endpoint, validate data structure including email and log entry.
-
-    Response:
-    {'payload': {
-            'data': [
-            ['1734177675', 'samudragupta201@gmail.com', 
-                '{"Log": "<p>this is test 1 updated one</p>", 
-                  "Date": "2024-12-14T17:31", 
-                  "Type": "Update"}'], 
-            ['1734177699', 'samudragupta201@gmail.com', 
-                '{"Log": "<p>this is test 2</p>", 
-                  "Date": "2024-12-14T17:31", 
-                  "Type": "Release"}']]
-            }, 'status': 'SUCCESS'}
+    Validate CRUD logs read structure, email & log body.
     """
-    get_response = requests.get(f'{BASE_URL}/crud_logs',
-                                headers=auth_headers
-                                )
-    json_get_data = get_response.json()
-    print(f"CRUD LOGS READ:{json_get_data}")
-    print('\n')
-    assert get_response.status_code == 200, "Failed to read CRUD logs"
-    assert isinstance(json_get_data['payload'], dict)
-    assert isinstance(json_get_data['payload']['data'], list)
+    response = requests.get(f'{BASE_URL}/crud_logs', headers=auth_headers)
+    data = response.json()
+
+    print(f"\nCRUD LOGS READ:\n{data}\n")
+
+    assert response.status_code == 200
+    assert isinstance(data['payload'], dict)
+    assert isinstance(data['payload']['data'], list)
 
     try:
-        response = Response(**json_get_data)
-        assert response.status == 'SUCCESS'
+        response_model = Response(**data)
+        assert response_model.status == 'SUCCESS'
     except ValidationError as e:
-        pytest.fail(f"Response schema validation error: {e}")
+        pytest.fail(f"Response schema validation failed: {e}")
 
-    # Validate Payload structure
-    json_payload = json_get_data.get('payload', {})
     try:
-        payload_valid = Payload(**json_payload)
+        payload_model = Payload(**data['payload'])
     except ValidationError as e:
-        pytest.fail(f"Payload schema validation error: {e}")
+        pytest.fail(f"Payload schema validation failed: {e}")
 
-    # Validate first record if available
-    if json_payload.get('data'):
+    if data['payload']['data']:
+        record = data['payload']['data'][0]
         try:
-            record = json_payload['data'][0]
-
-            # Make sure the list has at least 3 elements
             if len(record) < 3:
-                raise ValueError("Record does not contain enough elements")
+                raise ValueError("Insufficient fields in record")
 
-            # Parse the JSON string in record[2] into a dictionary
-            log_data = json.loads(record[2])  # This may raise JSONDecodeError
-
-            # Validate Log Entry
+            email = record[1]
+            log_data = json.loads(record[2])
+            email_valid = EmailValid(email=email)
             log_entry = LogEntry(**log_data)
 
-            # Validate email of log entry separately
-            email = record[1]
-            email_valid = EmailValid(email=email)
+            print("Validated Email:", email_valid)
+            print("Validated Log Entry:", log_entry)
 
-            print("Validated log entry:", log_entry)
-            print("Validated email:", email_valid)
+        except Exception as e:
+            pytest.fail(f"Record validation failed: {e}")
 
-        except (json.JSONDecodeError, ValidationError, ValueError, IndexError) as e:
-            pytest.fail(f"Nested data validation error: {e}")
+# ------------------------ Create / Update / Delete ------------------------ #
 
-# ----------------------------------- CREATE / UPDATE / DELETE -------------------------------------#
-# Func to get latest TS
 def get_latest_ts(auth_headers):
     """
-    Helper to fetch the latest log timestamp (ts) from /crud_logs.
+    Fetch latest timestamp from logs.
     """
-    response = requests.get(f'{BASE_URL}/crud_logs',
-                                headers=auth_headers
-                            )
-    assert response.status_code == 200, "Failed to fetch logs"
-    
+    response = requests.get(f'{BASE_URL}/crud_logs', headers=auth_headers)
+    assert response.status_code == 200
+
     res_json = response.json()
     data_list = res_json.get("payload", {}).get("data", [])
+    assert data_list, "No logs found"
 
-    assert data_list, "No log entries found"
-    
-    latest_entry = data_list[-1]  # Assuming last item is the latest
-    ts = latest_entry[0]  # ts is the first element
-    return ts
+    return data_list[-1][0]  # Last entry assumed latest
 
-# Fixture / Function for create
 @pytest.fixture(scope="module")
 def created_log_ts(auth_headers):
     """
-    Fixture to create a log and return its timestamp for further operations.
+    Create a log and return timestamp.
     """
     input_data = {
         "data": {
@@ -228,40 +175,34 @@ def created_log_ts(auth_headers):
         }
     }
 
-    post_response = requests.post(f'{BASE_URL}/crud_logs', 
-                                  json=input_data,
-                                  headers=auth_headers
-                                  )
-    json_create_data = post_response.json()
+    print(f"\nCreating Log:\n{input_data}\n")
 
-    print(f'Input given:{input_data}')
-    print(f'Create Status:{json_create_data}')
-    print('\n')
-    
-    assert post_response.status_code == 200
+    response = requests.post(f'{BASE_URL}/crud_logs', json=input_data, headers=auth_headers)
+    result = response.json()
+
+    print(f"Create Result:\n{result}\n")
+
+    assert response.status_code == 200
 
     try:
-        response = Response(**json_create_data)
-        assert response.status == 'SUCCESS'
+        resp = Response(**result)
+        assert resp.status == 'SUCCESS'
     except ValidationError as e:
-        pytest.fail(f"Create log response validation error: {e}")
+        pytest.fail(f"Create validation failed: {e}")
 
     return get_latest_ts(auth_headers)
 
-# Crud Logs Create
 def test_create(created_log_ts):
     """
-    Test that log was successfully created.
+    Confirm creation timestamp is valid.
     """
     assert created_log_ts is not None
     assert isinstance(created_log_ts, str)
-    print(f"Created log with ts: {created_log_ts}")
-    print('\n')
+    print(f"Created log timestamp: {created_log_ts}\n")
 
-# Crud Logs Update
 def test_update(created_log_ts, auth_headers):
     """
-    Test updating an existing log using its timestamp.
+    Update log by timestamp.
     """
     input_data = {
         "data": {
@@ -272,42 +213,34 @@ def test_update(created_log_ts, auth_headers):
         "ts": created_log_ts
     }
 
-    update_response = requests.put(f'{BASE_URL}/crud_logs',
-                    json=input_data,
-                    headers=auth_headers
-                    )
-    json_update_data = update_response.json()
+    response = requests.put(f'{BASE_URL}/crud_logs', json=input_data, headers=auth_headers)
+    data = response.json()
 
-    assert update_response.status_code == 200
+    print(f"\nUpdated Timestamp: {created_log_ts}")
+    print(f"Update Result:\n{data}\n")
 
-    print(f"Updated TS:{created_log_ts}")
-    print(f'Update Status:{json_update_data}')
-    print('\n')
+    assert response.status_code == 200
 
     try:
-        response = Response(**json_update_data)
-        assert response.status == "SUCCESS"
+        resp = Response(**data)
+        assert resp.status == 'SUCCESS'
     except ValidationError as e:
-        pytest.fail(f"Update response validation error: {e}")
+        pytest.fail(f"Update response validation failed: {e}")
 
-# Crud Logs Delete
 def test_delete(created_log_ts, auth_headers):
     """
-    Test deleting a log using its timestamp.
+    Delete log by timestamp.
     """
-    delete_response = requests.delete(f'{BASE_URL}/crud_logs', 
-                                      json={"ts": created_log_ts},
-                                      headers=auth_headers
-                                      )
-    delete_json_data = delete_response.json()
+    response = requests.delete(f'{BASE_URL}/crud_logs', json={"ts": created_log_ts}, headers=auth_headers)
+    data = response.json()
 
-    assert delete_response.status_code == 200
+    print(f"\nDeleted Timestamp: {created_log_ts}")
+    print(f"Delete Result:\n{data}\n")
 
-    print(f"Deleted TS:{created_log_ts}")
-    print(f'Delete Status:{delete_json_data}')
+    assert response.status_code == 200
 
     try:
-        response = Response(**delete_json_data)
-        assert response.status == 'SUCCESS'
+        resp = Response(**data)
+        assert resp.status == 'SUCCESS'
     except ValidationError as e:
-        pytest.fail(f"Delete response validation error: {e}")
+        pytest.fail(f"Delete response validation failed: {e}")

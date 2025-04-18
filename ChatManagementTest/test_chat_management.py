@@ -9,6 +9,7 @@ import jwt
 
 
 BASE_URL = "https://beta.tradefinder.in/api_be/admin/signal"
+SECRET_KEY = pyotp.random_base32()
 
 lock = threading.Lock()
 
@@ -32,8 +33,13 @@ def is_token_expired(token):
 
 # JWT TOKEN Func
 def get_jwttoken():
-    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNiNDc0OTY4MWI2NDExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0ODc3Nzc1LjM2OTA5MiwiZXhwIjoxNzQ0ODg4NTc1LjM2OTA5MiwicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.-PoZox5rT0pPEiRre3rPfgOLHJrMR8XBzI5j6AgTwNc"
+    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg1MGVlNGU0MWMzZjExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0OTcxOTU4LjkzNDcwNSwiZXhwIjoxNzQ0OTgyNzU4LjkzNDcwNSwicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.eWhTmvlOfPSnbEWmUj2tsvnCr6zxZXnoz1Rg7IK679o"
 
+# ACCESS TOKEN Func
+def get_accesstoken():
+    return pyotp.TOTP(SECRET_KEY, interval=30).now()
+
+# Refresh Token Func
 def refresh_tokens():
     while True:
         with lock:
@@ -262,20 +268,20 @@ def created_log_ts(auth_headers):
                                   json=input_data,
                                   headers=auth_headers
                                   )
-    json_create_data = post_response.json()
+    post_json_data = post_response.json()
 
     print(f'Input given:{input_data}')
     print('\n')
-    print(f'Create Status:{json_create_data}')
+    print(f'Create Status:{post_json_data}')
     print('\n')
     
     assert post_response.status_code == 200
 
     try:
-        response = Response(**json_create_data)
+        response = Response(**post_json_data)
         assert response.status == 'SUCCESS'
     except ValidationError as e:
-        pytest.fail(f"Create log response validation error: {e}")
+        pytest.fail(f"validation error while creating log entry: {e}")
 
     return get_latest_ts(auth_headers)
 

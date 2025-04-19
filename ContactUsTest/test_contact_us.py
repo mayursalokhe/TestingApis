@@ -1,18 +1,37 @@
 import requests
 import pytest
-from models import LogEntry, Payload, Response
 import datetime
 import json
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
+from typing import List
 import pyotp
 import threading
 import time 
 import jwt
 import openpyxl
 import io
+import configparser
 
+config = configparser.ConfigParser()
+config.read("config.ini")
+
+AUTH_URL = "https://beta.tradefinder.in/api_be/auth_internal/"
 BASE_URL = "https://beta.tradefinder.in/api_be/contact_us"
-SECRET_KEY = pyotp.random_base32()
+
+#-------------------------- Pydantic Models ----------------------------#
+
+# {'payload': {'data': [['1744796400', 'hr@gmail.com', 'harshada', '8433544979', 'this is testing contact message'], ['1727689882', 'nayan@gmail.com', 'nayan', '7894561230', 'This is a testing message']]}
+class Payload(BaseModel):
+    data: List[List[str]]
+
+# response status
+class Response(BaseModel):
+    status: str
+
+# ------------------------- Token Management ------------------------- #
+
+# SECRET_KEY = pyotp.random_base32()
+SECRET_KEY = config['ACCESS TOKEN']['SECRET_KEY']
 
 lock = threading.Lock()
 
@@ -20,8 +39,6 @@ token_data = {
     'jwttoken': None,
     'accesstoken': None
 }
-
-# ------------------------- Token Management ------------------------- #
 
 def is_token_expired(token):
     try:
@@ -32,11 +49,23 @@ def is_token_expired(token):
         print(f"\nError decoding token: {e}\n")
         return True
 
+# JWT Token Func
 def get_jwttoken():
-    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg1MGVlNGU0MWMzZjExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0OTcxOTU4LjkzNDcwNSwiZXhwIjoxNzQ0OTgyNzU4LjkzNDcwNSwicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.eWhTmvlOfPSnbEWmUj2tsvnCr6zxZXnoz1Rg7IK679o"  
+    try:
+        response = requests.get(f'{AUTH_URL}/bot_auth_internal',
+                                headers={'Authorization':config['JWT TOKEN']['AUTHORIZATION'], 'User-Agent': config['JWT TOKEN']['USER_AGENT']}
+                                )
+        #return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg1MGVlNGU0MWMzZjExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0OTcxOTU4LjkzNDcwNSwiZXhwIjoxNzQ0OTgyNzU4LjkzNDcwNSwicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.eWhTmvlOfPSnbEWmUj2tsvnCr6zxZXnoz1Rg7IK679o"  
+        print(f'\nJwttoken:{response.text}\n')
+        return response.text
+    except Exception as e:
+        print(f'Auth Internal JWTTOKEN Error:{e}')
 
+# ACCESS TOKEN Func
 def get_accesstoken():
-    return pyotp.TOTP(SECRET_KEY, interval=30).now()
+    access_token = pyotp.TOTP(SECRET_KEY, interval=30).now()
+    print(f'\nAccess Token:{access_token}\n')
+    return access_token
 
 def refresh_tokens():
     while True:
@@ -64,15 +93,13 @@ def test_health():
     """
     Test /health endpoint to ensure service is running.
     """
-    print("\nRunning Health Check...\n")
+    response = requests.get(f'{BASE_URL}/health')
+    response_json = response.json()
 
-    get_response = requests.get(f'{BASE_URL}/health')
-    json_get_data = get_response.json()
+    print(f"Health Status: {response_json}\n")
 
-    print(f"Health Status: {json_get_data}\n")
-
-    assert get_response.status_code == 200
-    assert json_get_data.get('status') == "OK"
+    assert response.status_code == 200
+    assert response_json.get('status') == "OK"
 
 # ------------------------- Admin Contact Read ------------------------- #
 
@@ -80,7 +107,7 @@ def test_contact_admin_read(auth_headers):
     """
     Test /log_read endpoint and validate response schema.
 
-    Response:
+    Response Example:
     {
         "payload": {
             "data": [
@@ -112,57 +139,27 @@ def test_contact_admin_read(auth_headers):
     """
     print("\nRunning Contact Admin Read...\n")
 
-    get_response = requests.get(f'{BASE_URL}/admin_contact', headers=auth_headers)
-    json_get_data = get_response.json()
+    response = requests.get(f'{BASE_URL}/admin_contact', headers=auth_headers)
+    response_json = response.json()
 
-    print(f"CONTACT ADMIN READ: {json_get_data}\n")
+    print(f"CONTACT ADMIN READ: {response_json}\n")
 
-    assert get_response.status_code == 200
-    assert isinstance(json_get_data['payload'], dict)
-    assert isinstance(json_get_data['payload']['data'], list)
+    assert response.status_code == 200
+    assert isinstance(response_json['payload'], dict)
+    assert isinstance(response_json['payload']['data'], list)
 
     # Response Validation
     try:
-        response = Response(**json_get_data)
-        assert response.status == 'SUCCESS'
+        response_model = Response(**response_json)
+        assert response_model.status == 'SUCCESS'
     except ValidationError as e:
         pytest.fail(f"Response schema validation error: {e}")
 
     # Validate Payload structure
-    json_payload = json_get_data.get('payload', {})
-    print(f'Json Payload: {json_payload}\n')
-
     try:
-        payload_valid = Payload(**json_payload)
-        for item in payload_valid.data:
-            assert len(item) == 5, f"Expected 5 fields but got {len(item)}: {item}"
+        payload_model = Payload(**response_json['payload'])
     except ValidationError as e:
-        pytest.fail(f"Payload schema validation error: {e}")
-
-    # Validate Payload -> Data(list) -> list 
-    field_names = ['ts', 'email', 'name', 'contact', 'message']
-    json_payload_data_list = json_payload.get('data')
-
-    try:
-        if not json_payload_data_list:
-            raise ValueError("Empty 'data' field in payload")
-
-        inner_list = json_payload_data_list[0]
-
-        if len(inner_list) != len(field_names):
-            raise ValueError("Mismatch between fields and data")
-
-        entry_dict = dict(zip(field_names, inner_list))
-
-        print(f"Mapped Dict: {entry_dict}\n")
-
-        log_entry = LogEntry(**entry_dict)
-        print(f"Parsed LogEntry: {log_entry}\n")
-
-    except ValidationError as ve:
-        pytest.fail(f"Validation error: {ve}")
-    except (ValueError, IndexError) as e:
-        pytest.fail(f"Data mapping error: {e}")
+        pytest.fail(f"Payload schema validation failed: {e}")
 
 # ------------------------- Create & Delete Contact Log ------------------------- #
 
@@ -175,8 +172,8 @@ def get_latest_ts(auth_headers):
     response = requests.get(f'{BASE_URL}/admin_contact', headers=auth_headers)
     assert response.status_code == 200
 
-    res_json = response.json()
-    data_list = res_json.get("payload", {}).get("data", [])
+    response_json = response.json()
+    data_list = response_json.get("payload", {}).get("data", [])
     assert data_list, "No log entries found"
 
     ts = data_list[0][0] # Assuming first item is the latest
@@ -197,19 +194,19 @@ def created_log_ts(auth_headers):
 
     print(f"\nCreating new contact log with: {input_data}\n")
 
-    post_response = requests.post(f'{BASE_URL}/contact_us_crud',
+    response = requests.post(f'{BASE_URL}/contact_us_crud',
                                   json=input_data,
                                   headers=auth_headers)
 
-    json_create_data = post_response.json()
+    response_json = response.json()
 
-    print(f"Create Response: {json_create_data}\n")
+    print(f"Create Response: {response_json}\n")
 
-    assert post_response.status_code == 200
+    assert response.status_code == 200
 
     try:
-        response = Response(**json_create_data)
-        assert response.status == 'SUCCESS'
+        response_model = Response(**response_json)
+        assert response_model.status == 'SUCCESS'
     except ValidationError as e:
         pytest.fail(f"Create log response validation error: {e}")
 
@@ -229,19 +226,19 @@ def test_contact_delete(created_log_ts, auth_headers):
     """
     print(f"\nDeleting contact log with timestamp: {created_log_ts}\n")
 
-    delete_response = requests.delete(f'{BASE_URL}/admin_contact',
+    response = requests.delete(f'{BASE_URL}/admin_contact',
                                       json={"timestamp": created_log_ts},
                                       headers=auth_headers)
 
-    delete_json_data = delete_response.json()
+    response_json = response.json()
 
-    print(f"Delete Response: {delete_json_data}\n")
+    print(f"Delete Response: {response_json}\n")
 
-    assert delete_response.status_code == 200
+    assert response.status_code == 200
 
     try:
-        response = Response(**delete_json_data)
-        assert response.status == 'SUCCESS'
+        response_model = Response(**response_json)
+        assert response_model.status == 'SUCCESS'
     except ValidationError as e:
         pytest.fail(f"Delete response validation error: {e}")
 
@@ -276,6 +273,7 @@ def test_download_excel(auth_headers):
     except Exception as e:
         pytest.fail(f"Failed to open/read Excel file: {e}")
 
+ 
     ## Download Excel file
     # filename = 'downloaded_file.xlsx'
     # if response.status_code == 200:

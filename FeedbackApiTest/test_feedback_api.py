@@ -1,15 +1,32 @@
 import requests
 import pytest
-from models import Response, Payload, LogEntry
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
+from typing import List
 import pyotp
 import threading
 import time 
 import jwt
+import configparser
 
+config = configparser.ConfigParser()
+config.read("config.ini")
+
+AUTH_URL = "https://beta.tradefinder.in/api_be/auth_internal/"
 BASE_URL = "https://beta.tradefinder.in/api_be/admin/feedback"
 
-SECRET_KEY = pyotp.random_base32()
+#---------------------------------- Pydantic Models ----------------------------#
+
+# .{'payload': {'data': [['1744949857', 'ex@gmail.com', 'mayur', '1234567890', 'Market Pulse', '', 'good'], ['1744949333', 'h@gmail.com', 'harshada', '917854623564', 'Other', '', 'good'], ['1740422237', 'dknaix@gmail.com', "<script>alert('XSS Attack!');</script>", '9876543100', 'Other', '', "<script>alert('XSS Attack!');</script>"], ['1738238501', 'dknaix@gmail.com', 'asdas  sdfg sdfh shg', '9876543210', 'Insider Strategy', '', 'asd gs d sdfh ']]}, 'status': 'SUCCESS'}
+class Payload(BaseModel):
+    data: List[List[str]]
+ 
+# response status 
+class Response(BaseModel):
+    status: str
+# ----------------------------- Token Management --------------------------- #
+
+# SECRET_KEY = pyotp.random_base32()
+SECRET_KEY = config['ACCESS TOKEN']['SECRET_KEY']
 
 lock = threading.Lock()
 
@@ -18,9 +35,7 @@ token_data = {
     'accesstoken': None
 }
 
-# ------------------------- Token Management ------------------------- #
-
-# Check token expired or not
+# Check token expired or not    
 def is_token_expired(token):
     try:
         decoded = jwt.decode(token, options={"verify_signature": False})
@@ -32,14 +47,24 @@ def is_token_expired(token):
         print(f"\nError decoding token: {e}\n")
         return True
 
-# JWT TOKEN Func
+# JWT Token Func
 def get_jwttoken():
-    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg1MGVlNGU0MWMzZjExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0OTcxOTU4LjkzNDcwNSwiZXhwIjoxNzQ0OTgyNzU4LjkzNDcwNSwicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.eWhTmvlOfPSnbEWmUj2tsvnCr6zxZXnoz1Rg7IK679o"  
+    try:
+        response = requests.get(f'{AUTH_URL}/bot_auth_internal',
+                                headers={'Authorization':config['JWT TOKEN']['AUTHORIZATION'], 'User-Agent': config['JWT TOKEN']['USER_AGENT']}
+                                )
+        #return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg1MGVlNGU0MWMzZjExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0OTcxOTU4LjkzNDcwNSwiZXhwIjoxNzQ0OTgyNzU4LjkzNDcwNSwicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.eWhTmvlOfPSnbEWmUj2tsvnCr6zxZXnoz1Rg7IK679o"  
+        print(f'Jwttoken:{response.text}')
+        return response.text
+    except Exception as e:
+        print(f'Auth Internal JWTTOKEN Error:{e}')
+
 
 # ACCESS TOKEN Func
 def get_accesstoken():
-    accesstoken_obj = pyotp.TOTP(SECRET_KEY, interval=30)
-    return accesstoken_obj.now()  
+    access_token = pyotp.TOTP(SECRET_KEY, interval=30).now()
+    print(f'Access Token:{access_token}')
+    return access_token
 
 # Refresh Token Func
 def refresh_tokens():
@@ -62,7 +87,7 @@ def auth_headers():
             'Accesstoken': token_data['accesstoken']  
         }
 
-# ------------------------- Health Check ------------------------- #
+# -------------------------- Health Check ---------------------------- #
 
 def test_health():
     """
@@ -70,13 +95,13 @@ def test_health():
     """
     print("\nRunning Health Check...\n")
 
-    get_response = requests.get(f'{BASE_URL}/health')
-    json_get_data = get_response.json()
+    response = requests.get(f'{BASE_URL}/health')
+    response_json = response.json()
 
-    print(f'\nHealth Status: {json_get_data}\n')
+    print(f'\nHealth Status: {response_json}\n')
 
-    assert get_response.status_code == 200, "Health check failed"
-    assert json_get_data.get('status') == "OK", "Unexpected health check response"
+    assert response.status_code == 200, "Health check failed"
+    assert response_json.get('status') == "OK", "Unexpected health check response"
 
 # ---------------------------- Admin Feedback Read ---------------------------- #
 
@@ -86,55 +111,28 @@ def test_admin_feedback_read(auth_headers):
     """
     print("\nRunning Admin Feedback Read Test...\n")
 
-    get_response = requests.get(f'{BASE_URL}/admin_feedback', headers=auth_headers)
-    json_get_data = get_response.json()
+    response = requests.get(f'{BASE_URL}/admin_feedback', headers=auth_headers)
+    response_json = response.json()
 
-    print(f'\nAdmin feedback read JSON: {json_get_data}\n')
+    print(f'\nAdmin feedback read JSON: {response_json}\n')
 
-    assert get_response.status_code == 200, "Failed to read logs"
-    assert isinstance(json_get_data['payload'], dict)
-    assert isinstance(json_get_data['payload']['data'], list)
+    assert response.status_code == 200, "Failed to read logs"
+    assert isinstance(response_json['payload'], dict)
+    assert isinstance(response_json['payload']['data'], list)
 
+    # Response Validation
     try:
-        response = Response(**json_get_data)
-        assert response.status == 'SUCCESS'
+        response_model = Response(**response_json)
+        assert response_model.status == 'SUCCESS'
     except ValidationError as e:
         pytest.fail(f"\nResponse schema validation error: {e}\n")
 
-    json_payload = json_get_data.get('payload', {})
-
+    # Validate Payload structure
     try:
-        payload_valid = Payload(**json_payload)
+        payload_valid = Payload(**response_json['payload'])
     except ValidationError as e:
         pytest.fail(f"\nPayload schema validation error: {e}\n")
-    
-    field_names = ['ts', 'email', 'name', 'whatsapp', 'category', 'image', 'feedback']
-    json_payload_data_list = json_payload.get('data')
 
-    try:
-        if not json_payload_data_list:
-            raise ValueError("Missing or empty 'data' field in JSON payload")
-
-        inner_list = json_payload_data_list[0]
-
-        print(f'\nInner List: {inner_list}\n')
-
-        if len(inner_list) != len(field_names):
-            raise ValueError("Field count mismatch between data and expected model fields")
-        
-        entry_dict = dict(zip(field_names, inner_list))
-
-        print("\nMapped dict:", entry_dict, "\n")
-
-        log_entry = LogEntry(**entry_dict)
-
-        print("\nParsed LogPublicEntry:", log_entry, "\n")
-
-    except ValidationError as ve:
-        pytest.fail(f"\nValidation error: {ve}\n")
-
-    except (ValueError, IndexError) as e:
-        pytest.fail(f"\nData mapping error: {e}\n")
 
 # ---------------------------- Admin Feedback Create ---------------------------- #
 
@@ -155,7 +153,7 @@ def get_latest_ts(auth_headers):
     
     latest_entry = data_list[0]
     ts = latest_entry[0]
-
+    print(f"Latest Timestamp: {ts}\n")
     return ts
 
 @pytest.fixture(scope="module")

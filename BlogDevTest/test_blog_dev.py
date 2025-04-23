@@ -186,7 +186,7 @@ def test_client_read(auth_headers, created_blog_ts):
     
     response_json = response.json()
 
-    print(f'\nTrading Journal read JSON: {response_json}\n')
+    print(f'\nClient read JSON: {response_json}\n')
 
     assert response.status_code == 200, "Failed to read blog"
     assert isinstance(response_json['payload'], dict)
@@ -262,7 +262,7 @@ def test_delete(created_blog_ts, auth_headers):
 
 #------------------------------------ Client Blog Read List (All Category) --------------------------------------#
 
-def test_client_blog_read_list(auth_headers):
+def test_category_all(auth_headers):
     """
     Test /fetch_blog_list endpoint and validate response schema.
 
@@ -282,7 +282,247 @@ def test_client_blog_read_list(auth_headers):
     
     response_json = response.json()
 
-    print(f'\nTrading Journal read JSON: {response_json}\n')
+    print(f'\nTest Category all read JSON: {response_json}\n')
+
+    assert response.status_code == 200, "Failed to read blogs"
+    assert isinstance(response_json['payload'], dict)
+    assert isinstance(response_json['payload']['data'], list)
+
+    # Response Validation
+    try:
+        response_model = Response(**response_json)
+        assert response_model.status == 'SUCCESS'
+    except ValidationError as e:
+        pytest.fail(f"\nResponse schema validation error: {e}\n")
+
+    # Validate Payload structure
+    try:
+        payload_valid = Payload(**response_json['payload'])
+    except ValidationError as e:
+        pytest.fail(f"\nPayload schema validation error: {e}\n")
+
+#------------------------------------- Client Blog Read List (Market Updates Category) --------------------------------------#
+
+def test_category_market_updates(auth_headers):
+    """
+    Test /fetch_blog_list (Market Updates Category) endpoint and validate response schema.
+    """
+    category_all = {"catg":"Market Updates"}
+    json_category_str = json.dumps(category_all)
+    encoded_category_all = base64.b64encode(json_category_str.encode()).decode()
+    print(f'Encoded data (Category market updates):{encoded_category_all}')
+    
+    params = {
+        'data':encoded_category_all
+    }
+
+    response = requests.get(f'{BASE_URL}/fetch_blog_list', headers=auth_headers, params=params)
+
+    assert response.status_code == 200, "Failed to fetch blogs"
+    
+    response_json = response.json()
+
+    print(f'\nTest Category market updates read JSON: {response_json}\n')
+
+    assert response.status_code == 200, "Failed to read blogs"
+    assert isinstance(response_json['payload'], dict)
+    assert isinstance(response_json['payload']['data'], list)
+
+    # Response Validation
+    try:
+        response_model = Response(**response_json)
+        assert response_model.status == 'SUCCESS'
+    except ValidationError as e:
+        pytest.fail(f"\nResponse schema validation error: {e}\n")
+
+    # Validate Payload structure
+    try:
+        payload_valid = Payload(**response_json['payload'])
+    except ValidationError as e:
+        pytest.fail(f"\nPayload schema validation error: {e}\n")
+
+#------------------------------------- Client Blog Read List (Investing Category) --------------------------------------#
+
+def test_category_investing(auth_headers):
+    """
+    Test /fetch_blog_list (investing Category) endpoint and validate response schema.
+    """
+    category_all = {"catg":"Investing"}
+    json_category_str = json.dumps(category_all)
+    encoded_category_all = base64.b64encode(json_category_str.encode()).decode()
+    print(f'Encoded data (Category investing):{encoded_category_all}')
+    
+    params = {
+        'data':encoded_category_all
+    }
+
+    response = requests.get(f'{BASE_URL}/fetch_blog_list', headers=auth_headers, params=params)
+
+    assert response.status_code == 200, "Failed to fetch blogs"
+    
+    response_json = response.json()
+
+    print(f'\nTest Category investing read JSON: {response_json}\n')
+
+    assert response.status_code == 200, "Failed to read blogs"
+    assert isinstance(response_json['payload'], dict)
+    assert isinstance(response_json['payload']['data'], list)
+
+    # Response Validation
+    try:
+        response_model = Response(**response_json)
+        assert response_model.status == 'SUCCESS'
+    except ValidationError as e:
+        pytest.fail(f"\nResponse schema validation error: {e}\n")
+
+    # Validate Payload structure
+    try:
+        payload_valid = Payload(**response_json['payload'])
+    except ValidationError as e:
+        pytest.fail(f"\nPayload schema validation error: {e}\n")
+
+#------------------------------------- Client Blog Read List (Risk Management Category) --------------------------------------#
+
+def test_category_risk_management(auth_headers):
+    """
+    Test /fetch_blog_list (Risk Management Category) endpoint and validate response schema.
+    """
+    category_all = {"catg":"Risk Management"}
+    json_category_str = json.dumps(category_all)
+    encoded_category_all = base64.b64encode(json_category_str.encode()).decode()
+    print(f'Encoded data (Category Risk Management):{encoded_category_all}')
+    
+    params = {
+        'data':encoded_category_all
+    }
+
+    response = requests.get(f'{BASE_URL}/fetch_blog_list', headers=auth_headers, params=params)
+
+    assert response.status_code == 200, "Failed to fetch blogs"
+    
+    response_json = response.json()
+
+    print(f'\nTest Category risk management read JSON: {response_json}\n')
+
+    assert response.status_code == 200, "Failed to read blogs"
+    assert isinstance(response_json['payload'], dict)
+    assert isinstance(response_json['payload']['data'], list)
+
+    # Response Validation
+    try:
+        response_model = Response(**response_json)
+        assert response_model.status == 'SUCCESS'
+    except ValidationError as e:
+        pytest.fail(f"\nResponse schema validation error: {e}\n")
+
+    # Validate Payload structure
+    try:
+        payload_valid = Payload(**response_json['payload'])
+    except ValidationError as e:
+        pytest.fail(f"\nPayload schema validation error: {e}\n")
+
+#------------------------------------- Client Blog Read List (Trading Psychology Category) --------------------------------------#
+
+def test_category_trading_psychology(auth_headers):
+    """
+    Test /fetch_blog_list (Trading Psychology Category) endpoint and validate response schema.
+    """
+    category_all = {"catg":"Trading Psychology"}
+    json_category_str = json.dumps(category_all)
+    encoded_category_all = base64.b64encode(json_category_str.encode()).decode()
+    print(f'Encoded data (Category Trading Psychology):{encoded_category_all}')
+    
+    params = {
+        'data':encoded_category_all
+    }
+
+    response = requests.get(f'{BASE_URL}/fetch_blog_list', headers=auth_headers, params=params)
+
+    assert response.status_code == 200, "Failed to fetch blogs"
+    
+    response_json = response.json()
+
+    print(f'\nTest Category trading psychology read JSON: {response_json}\n')
+
+    assert response.status_code == 200, "Failed to read blogs"
+    assert isinstance(response_json['payload'], dict)
+    assert isinstance(response_json['payload']['data'], list)
+
+    # Response Validation
+    try:
+        response_model = Response(**response_json)
+        assert response_model.status == 'SUCCESS'
+    except ValidationError as e:
+        pytest.fail(f"\nResponse schema validation error: {e}\n")
+
+    # Validate Payload structure
+    try:
+        payload_valid = Payload(**response_json['payload'])
+    except ValidationError as e:
+        pytest.fail(f"\nPayload schema validation error: {e}\n")
+
+#------------------------------------- Client Blog Read List (Trading Tip Category) --------------------------------------#
+
+def test_category_trading_tip(auth_headers):
+    """
+    Test /fetch_blog_list (Trading Tip Category) endpoint and validate response schema.
+    """
+    category_all = {"catg":"Trading Tip"}
+    json_category_str = json.dumps(category_all)
+    encoded_category_all = base64.b64encode(json_category_str.encode()).decode()
+    print(f'Encoded data (Category Trading Tip):{encoded_category_all}')
+    
+    params = {
+        'data':encoded_category_all
+    }
+
+    response = requests.get(f'{BASE_URL}/fetch_blog_list', headers=auth_headers, params=params)
+
+    assert response.status_code == 200, "Failed to fetch blogs"
+    
+    response_json = response.json()
+
+    print(f'\nTest Category trading tip read JSON:  {response_json}\n')
+
+    assert response.status_code == 200, "Failed to read blogs"
+    assert isinstance(response_json['payload'], dict)
+    assert isinstance(response_json['payload']['data'], list)
+
+    # Response Validation
+    try:
+        response_model = Response(**response_json)
+        assert response_model.status == 'SUCCESS'
+    except ValidationError as e:
+        pytest.fail(f"\nResponse schema validation error: {e}\n")
+
+    # Validate Payload structure
+    try:
+        payload_valid = Payload(**response_json['payload'])
+    except ValidationError as e:
+        pytest.fail(f"\nPayload schema validation error: {e}\n")
+
+#------------------------------------- Client Blog Read List (Trading Method Category) --------------------------------------#
+
+def test_category_trading_method(auth_headers):
+    """
+    Test /fetch_blog_list (Trading Method Category) endpoint and validate response schema.
+    """
+    category_all = {"catg":"Trading Method"}
+    json_category_str = json.dumps(category_all)
+    encoded_category_all = base64.b64encode(json_category_str.encode()).decode()
+    print(f'Encoded data (Category Trading Method):{encoded_category_all}')
+    
+    params = {
+        'data':encoded_category_all
+    }
+
+    response = requests.get(f'{BASE_URL}/fetch_blog_list', headers=auth_headers, params=params)
+
+    assert response.status_code == 200, "Failed to fetch blogs"
+    
+    response_json = response.json()
+
+    print(f'\nTest Category trading method read JSON:  {response_json}\n')
 
     assert response.status_code == 200, "Failed to read blogs"
     assert isinstance(response_json['payload'], dict)
@@ -314,7 +554,7 @@ def test_blog_read_all(auth_headers):
     
     response_json = response.json()
 
-    # print(f'\nTrading Journal read JSON: {response_json}\n')
+    # print(f'\nTest blog all read JSON: {response_json}\n')
 
     assert response.status_code == 200, "Failed to read blogs"
     assert isinstance(response_json['payload'], dict)

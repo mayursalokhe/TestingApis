@@ -88,7 +88,21 @@ def auth_headers():
             'Jwttoken': token_data['jwttoken'],
             'Accesstoken': token_data['accesstoken']  
         }
-    
+#------------------------------------ Health check ----------------------------------------#
+
+def test_health():
+    """
+    Test for health of trading journal
+    """
+
+    response = requests.get(f'{BASE_URL}/health')
+    response_json = response.json()
+
+    print(f'\nHealth Status: {response_json}\n')
+
+    assert response.status_code == 200, "Health check failed"
+    assert response_json.get('status') == "OK", "Unexpected health check response"
+
 #------------------------------------ Create Blog -----------------------------------------#
 
 # Funv to get latest timestamp

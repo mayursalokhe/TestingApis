@@ -208,6 +208,9 @@ def test_client_read(auth_headers, created_blog_ts):
 #---------------------------------- Update Blog ------------------------------------------------#
 
 def test_update(auth_headers, created_blog_ts):
+    """
+    Test for update blog endpoints
+    """
     input_data = {
         "blog_id":created_blog_ts,
         "title":"updated title",
@@ -238,6 +241,9 @@ def test_update(auth_headers, created_blog_ts):
 #--------------------------------------------- Delete --------------------------------------------#
 
 def test_delete(created_blog_ts, auth_headers):
+    """
+    Test for blog delete endpoints
+    """
     delete_response = requests.delete(f'{BASE_URL}/delete_blog', 
                                       json={"blog_id": created_blog_ts},
                                       headers=auth_headers)

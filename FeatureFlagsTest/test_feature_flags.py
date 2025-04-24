@@ -172,19 +172,3 @@ def test_feature_flags_update(auth_headers):
         assert response_model.status == 'SUCCESS'
     except ValidationError as e:
         pytest.fail(f"\nUpdate log response validation error: {e}\n")
-
-#--------------------------------------------- Helper Func Test for read after update -----------------------#
-
-# def test_feature_flags_read_after_update(auth_headers):
-#     """
-#     Test for feature flags read after update endpoint
-#     """
-
-#     print(f'\nRunning fature flags read after update...\n')
-
-#     response = requests.get(f'{BASE_URL}/feature_read', headers=auth_headers)
-#     response_json = response.json()
-
-#     print(f'\nfeature flags Read JSON:{response_json}\n')
-
-

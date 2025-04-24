@@ -16,6 +16,7 @@ BASE_URL = "https://beta.tradefinder.in/api_be/feature_flag"
 
 #--------------------------------------------- Pydantic Models ----------------------------------------------#
 
+# {'payload': {'data': {'calculator': {'message': '', 'page_hide': 'Show'}, 'calendar': {'message': '', 'page_hide': 'Show'}, 'faq-videos': {'message': '', 'page_hide': 'Show'}, 'feedback': {'message': '', 'page_hide': 'Show'},  'games': {'message': '', 'page_hide': 'Show'},  'watchlist': {'message': '', 'page_hide': 'Show'}}}, 'status': 'SUCCESS'}
 class Payload(BaseModel):
     data: Dict[str, Dict]
  
@@ -158,7 +159,7 @@ def test_feature_flags_update(auth_headers):
     """
     Test for feature flags update endpoint
     """
-    input_json = {"profit": {"message":"Profit Hide", "page_hide": "Hide"}}
+    input_json = {"games": {"message":"", "page_hide": "Show"}}
 
     print(f'\nRunning feature flags Update Test...\n')
 

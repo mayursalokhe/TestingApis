@@ -94,7 +94,6 @@ def test_health():
     """
     Test for health of financial calender
     """
-
     response = requests.get(f'{BASE_URL}/health')
     response_json = response.json()
 
@@ -107,9 +106,8 @@ def test_health():
 
 def test_events_read(auth_headers):
     """
-    Test for events read of financial calender
+    Test for events read endpoint of financial calender
     """
-
     print("\nRunning events read of financial calender Test...\n")
     
     response = requests.get(f'{BASE_URL}/events_read', headers=auth_headers)
@@ -227,9 +225,8 @@ def test_event_create(created_log_ts):
 
 def test_crud_read(auth_headers):
     """
-    Test for crud read of financial calender
+    Test for event read endpoint of financial calender
     """
-
     print("\nRunning crud read of financial calender Test...\n")
     
     response = requests.get(f'{BASE_URL}/crud_fincal', headers=auth_headers)
@@ -244,7 +241,7 @@ def test_crud_read(auth_headers):
     # Response Validation
     try:
         response_model = Response(**response_json)
-        assert response_model.status == 'SUCCESS'
+        assert response_model.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"\nResponse schema validation error: {e}\n")
 
@@ -258,7 +255,7 @@ def test_crud_read(auth_headers):
 
 def test_event_delete(auth_headers, created_log_ts):
     """
-    Test for event delete for financial calender
+    Test for event delete endpoint of financial calender
     """
     response = requests.delete(f'{BASE_URL}/crud_fincal', 
                                       json={"timestamp": created_log_ts},
@@ -273,6 +270,6 @@ def test_event_delete(auth_headers, created_log_ts):
 
     try:
         response_model = Response(**response_json)
-        assert response_model.status == 'SUCCESS'
+        assert response_model.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"Delete response validation error: {e}")

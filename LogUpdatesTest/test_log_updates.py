@@ -8,6 +8,7 @@ import threading
 import time
 import jwt
 import configparser
+from datetime import datetime
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -50,7 +51,6 @@ def get_jwttoken():
         response = requests.get(f'{AUTH_URL}/bot_auth_internal',
                                 headers={'Authorization':config['JWT TOKEN']['AUTHORIZATION'], 'User-Agent': config['JWT TOKEN']['USER_AGENT']}
                                 )
-        # return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg1MGVlNGU0MWMzZjExZjBhMzEwMjczYTJmOGFhMGFhIiwiZW1haWwiOiJtYXl1cnNhbG9raGU5MjAxQGdtYWlsLmNvbSIsInN0YXJ0IjoxNzQ0OTcxOTU4LjkzNDcwNSwiZXhwIjoxNzQ0OTgyNzU4LjkzNDcwNSwicGxhbiI6IkRJQU1PTkQiLCJ1c2VyX3R5cGUiOiJjbGllbnQiLCJhY2Nlc3MiOiJ7XCJtYXJrZXRfcHVsc2VcIjogMSwgXCJpbnNpZGVyX3N0cmF0ZWd5XCI6IDAsIFwic2VjdG9yX3Njb3BlXCI6IDAsIFwic3dpbmdfc3BlY3RydW1cIjogMCwgXCJvcHRpb25fY2xvY2tcIjogMCwgXCJvcHRpb25fYXBleFwiOiAwLCBcInBhcnRuZXJfcHJvZ3JhbVwiOiAwfSIsImFjY291bnRfZXhwIjoiMTc3NjE5MTQwMCIsImJyb2tlciI6IiJ9.eWhTmvlOfPSnbEWmUj2tsvnCr6zxZXnoz1Rg7IK679o" 
         print(f'\nJwttoken:{response.text}\n')
         return response.text
     except Exception as e:
@@ -187,7 +187,7 @@ def created_log_ts(auth_headers):
     """
     input_data = {
         "data": {
-            "Date": "14-04-2025T12:25",
+            "Date": datetime.now().strftime("%d-%m-%YT%H:%M"),
             "Log": "version 1.24.8",
             "Type": "Release"
         }
@@ -224,7 +224,7 @@ def test_update(created_log_ts, auth_headers):
     """
     input_data = {
         "data": {
-            "Date": "15-04-2025T10:00",
+            "Date": datetime.now().strftime("%d-%m-%YT%H:%M"),
             "Log": "version 1.24.9 - Updated",
             "Type": "Improvement"
         },

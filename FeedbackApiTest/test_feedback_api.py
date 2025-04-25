@@ -123,7 +123,7 @@ def test_admin_feedback_read(auth_headers):
     # Response Validation
     try:
         response_model = Response(**response_json)
-        assert response_model.status == 'SUCCESS'
+        assert response_model.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"\nResponse schema validation error: {e}\n")
 
@@ -151,8 +151,8 @@ def get_latest_ts(auth_headers):
 
     assert data_list, "No log entries found"
     
-    latest_entry = data_list[0]
-    ts = latest_entry[0]
+    latest_entry = data_list[0] # assuming first entry is latest
+    ts = latest_entry[0] 
     print(f"Latest Timestamp: {ts}\n")
     return ts
 
@@ -184,7 +184,7 @@ def created_log_ts(auth_headers):
 
     try:
         response = Response(**json_create_data)
-        assert response.status == 'SUCCESS'
+        assert response.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"\nCreate log response validation error: {e}\n")
 
@@ -219,6 +219,6 @@ def test_delete(created_log_ts, auth_headers):
 
     try:
         response = Response(**delete_json_data)
-        assert response.status == 'SUCCESS'
+        assert response.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"\nDelete response validation error: {e}\n")

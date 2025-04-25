@@ -151,7 +151,7 @@ def test_contact_admin_read(auth_headers):
     # Response Validation
     try:
         response_model = Response(**response_json)
-        assert response_model.status == 'SUCCESS'
+        assert response_model.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"Response schema validation error: {e}")
 
@@ -214,9 +214,9 @@ def created_log_ts(auth_headers):
 
 def test_contact_create(created_log_ts):
     """
-    Ensure log creation returns a valid timestamp.
+    Ensure contact log creation returns a valid timestamp.
     """
-    assert created_log_ts is not None
+    assert created_log_ts is not None, "Timestamp is None – event might not have been created properly"
     assert isinstance(created_log_ts, str)
     print(f"Created log with timestamp: {created_log_ts}\n")
 
@@ -238,7 +238,7 @@ def test_contact_delete(created_log_ts, auth_headers):
 
     try:
         response_model = Response(**response_json)
-        assert response_model.status == 'SUCCESS'
+        assert response_model.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"Delete response validation error: {e}")
 

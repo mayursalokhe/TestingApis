@@ -128,7 +128,7 @@ def test_read_instr_list(auth_headers):
     # Response Validation
     try:
         response_model = Response(**response_json)
-        assert response_model.status == 'SUCCESS'
+        assert response_model.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"\nResponse schema validation error: {e}\n")
 
@@ -223,7 +223,7 @@ def created_log_ts(auth_headers):
 
     try:
         response = Response(**json_create_data)
-        assert response.status == 'SUCCESS'
+        assert response.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"\nCreate log response validation error: {e}\n")
 
@@ -286,7 +286,7 @@ def test_read(auth_headers):
     # Response Validation
     try:
         response_model = Response(**response_json)
-        assert response_model.status == 'SUCCESS'
+        assert response_model.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"\nResponse schema validation error: {e}\n")
 
@@ -330,7 +330,7 @@ def test_update(created_log_ts, auth_headers):
 
     try:
         response = Response(**put_response_json)
-        assert response.status == 'SUCCESS'
+        assert response.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"\nUpdate log response validation error: {e}\n")
 
@@ -350,7 +350,7 @@ def test_delete(created_log_ts, auth_headers):
 
     try:
         response = Response(**delete_json_data)
-        assert response.status == 'SUCCESS'
+        assert response.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"\nDelete response validation error: {e}\n")
 

@@ -143,7 +143,7 @@ def test_feature_flags_read(auth_headers):
     # Response Validation
     try:
         response_model = Response(**response_json)
-        assert response_model.status == 'SUCCESS'
+        assert response_model.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"\nResponse schema validation error: {e}\n")
 
@@ -170,6 +170,6 @@ def test_feature_flags_update(auth_headers):
 
     try:
         response_model = Response(**update_response_json)
-        assert response_model.status == 'SUCCESS'
+        assert response_model.status == 'SUCCESS', "API response status is not SUCCESS"
     except ValidationError as e:
         pytest.fail(f"\nUpdate log response validation error: {e}\n")
